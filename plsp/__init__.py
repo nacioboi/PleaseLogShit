@@ -9,11 +9,17 @@ this means that the interesting parts of the code stay separate from printing an
 
 
 
-from ._OLD_InfoInjector import _InfoInjector
+from . import Logger
+from . import DebugContext
+from . import DebugMode
 
-_OLD_InfoInjector = _InfoInjector()
+from . import infoinject
+from . import formatters
 
-from Logger import pls
+
+
+
+
 
 
 """

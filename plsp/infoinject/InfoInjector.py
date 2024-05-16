@@ -33,9 +33,6 @@ class _InfoInjector:
 				while not complete:
 					code, complete = self._sanitize_generated_func(code, original_func)
 
-				# NOTE: FOR DEBUGGING PURPOSES...
-				print(code)
-
 				# The below loads the generated function into the global scope.
 				# We force it to save the function as a global variable.
 				exec(code, globals, locals)
@@ -235,7 +232,7 @@ class _InfoInjector:
 			prefix = indentation_type*self._get_indentation_level(lines, line_no, indentation_type)
 
 			# Step 5: inject the code...
-			new_line = f"{prefix}pls().{debug_context}.{debug_mode}("
+			new_line = f"{prefix}plsp().{debug_context}.{debug_mode}("
 			new_line += ", ".join(args_for_logger)
 
 			for key, value in kwargs_for_logger.items():

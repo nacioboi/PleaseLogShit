@@ -1,10 +1,11 @@
-from io import IOBase
-from DebugMode import DebugMode
-from formatters.Formatter import IFormatter
-from formatters.FinalFormatter import IFinalFormatter
-from formatters.defaults import DefaultFinalFormatter
-from Direction import IODirection
+import sys
+from .DebugMode import DebugMode
+from .formatters.Formatter import IFormatter
+from .formatters.FinalFormatter import IFinalFormatter
+from .formatters.defaults import DefaultFinalFormatter
+from .Direction import IODirection
 
+from io import IOBase, TextIOWrapper
 import base64
 
 
@@ -108,10 +109,16 @@ class DebugContext:
 			direction.validate()
 
 			if direction.file_handle is not None:
-				f = open(direction.file_handle, "w")
-			
+				if direction.file_handle == 1:
+					f = sys.stdout
+				elif direction.file_handle == 2:
+					f = sys.stderr
+				else:
+					f = open(direction.file_handle, "a")
 			elif direction.file_path is not None:
 				f = open(direction.file_path, "a")
+			else:
+				raise Exception("No file handle or file path to write to.")
 
 			if not isinstance(f, IOBase):
 				raise Exception("No file handle to write to.")
@@ -120,7 +127,7 @@ class DebugContext:
 			f.write("\n")
 
 		finally:
-			if isinstance(f, IOBase) and not f.closed:
+			if f and (not direction.file_handle in [1,2]) and not f.closed:
 				f.close()
 
 

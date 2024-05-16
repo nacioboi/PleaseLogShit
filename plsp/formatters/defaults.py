@@ -1,5 +1,5 @@
-from formatters.Formatter import IFormatter
-from formatters.FinalFormatter import IFinalFormatter
+from .Formatter import IFormatter
+from .FinalFormatter import IFinalFormatter
 
 
 

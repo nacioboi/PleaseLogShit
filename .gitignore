@@ -1,0 +1,11 @@
+# Python shits...
+/**/__pycache__
+/**/*.pyc
+/**/*.egg-info
+
+# Secret shits...
+/**/.*
+!/.gitignore
+
+# Other shits...
+/dist

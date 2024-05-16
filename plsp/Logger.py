@@ -1,4 +1,4 @@
-from DebugContext import DebugContext, DebugMode
+from .DebugContext import DebugContext, DebugMode
 
 from typing import Any
 
@@ -146,95 +146,7 @@ class Logger:
 
 
 	"""
-	ACTUAL MASSIVE DISCLAIMER: THIS ENTIRE LIBRARY IS SUBJECT TO CHANGE.
-
-	The actual meat and potatoes of the amazing infoinject library. ^_^
-
-	Short NOTE: This is using a singleton class to make the usage of this API a bit more user-friendly.
-
-	Attributes:
-	- vars (dict): 	A dictionary of variables that are used to store, among other configurations, 
-			  the global context and the global mode.
-	
-	Methods:
-	- __call__: 		Used to return the `RUNTIME_HELPER_INSTANCE` variable. [SEE] below for more info.
-	- _add_debug_mode: 	Used by `add_debug_mode`, underscores usually denote an inner function.
-	- add_debug_mode: 	Used to add a debug mode to the system. [SEE] `ADebugMode` in `DebugMode.py`.
-				  It takes `name`(str) and any of `write_to_file`(str|None), `write_to_io`(int|None), and
-				  `extends_from`(str|None).
-				  `write_to_file` is the file to write to (if any).
-				  `write_to_io` is the io object to write to (if any).
-				  NOTE: You must specify at least one of `write_to_file` or `write_to_io`.
-				  `level` should be stated here even though it is not a parameter. [SEE] below.
-	- add_debug_context: 	Used to add a debug context to the system. [SEE] `DebugContext` in `DebugContext.py`.
-				  This works a bit differently than `add_debug_mode` because contexts are a bit more
-				  complicated than modes.
-				  You simply pass the `name`(str) of the context and then later on you can modify it.
-	- get_debug_context: 	Used to get a debug context by its key.
-				  Like i said, you can modify the debug contexts after they are created. [SEE] below!
-	- set: 			Used to set a variable in the `vars` dictionary. [SEE] below for more info.
-
-	More info on the `RUNTIME_HELPER_INSTANCE`:
-
-	> Take the following code for example:
-	```py
-	Logger.set("global_context", "generic")
-	Logger.set("global_mode", "info")
-
-	Logger.add_debug_mode("info", write_to_io=1)
-	Logger.add_debug_context("generic")
-	```
-	> Here, we have set the global context to "generic" and the global mode to "info".
-	> We have also set the global mode to "info" and added a debug context called "generic".
-
-	> So when we go:
-	```py
-	Logger().info("This is using the generic context.")
-	```
-
-	> The `Logger()` part returns the `RUNTIME_HELPER_INSTANCE` variable.
-
-	> This way we can have dynamic debug modes and debug contexts and the intellisense will not throw a fit. ^_^
-
-	More info on the `level` attribute of the `ADebugMode` class:
-
-	> The `level` attribute is automatically assigned when calling the `add_debug_mode` method.
-	> This means you must specify the precedence based on the order you call the `add_debug_mode` method.
-	> You can (but should not) make your own debug mode with the `ADebugMode` class.
-
-	More info on the `get_debug_context` method:
-
-	> Take the following code for example:
-	```py
-	Logger.add_debug_context("generic")
-	```
-	> We've seen this before. We've added a debug context called "generic".
-	> Now if we want to access the debug context in order to change it, for example, add a format layer:
-	```py
-	Logger.get_debug_context("generic").add_format_layer(TimeFormatter)
-	```
-	> This uses the included time formatter to add the time before each log message.
-	> There is other things you can do but that's the basic idea.
-
-	More info on the `set` method:
-	> The currently supported variables are:
-	- `global_context` (str): 	The global context to use.
-	> Take the following code:
-	```py
-	Logger.add_debug_mode("info", write_to_io=1)
-	Logger.add_debug_context("generic")
-	Logger().generic.info("This is using the generic context.")
-	```
-	> This might become tedious if you have to specify the context every time.
-	> So you can set the global context and mode like so:
-	```py
-	Logger.set("global_context", "generic")
-	Logger.set("global_mode", "info")
-	```
-	> Now you can just do:
-	```py
-	Logger().info("This is using the generic context.")
-	```
+	The actual meat and potatoes of the logging system.
 	"""
 
 
@@ -249,14 +161,14 @@ class Logger:
 		Side Effects:
 		- Adds a "disabled" debug mode to the system.
 		"""
-		global pls
+		global plsp
 
 		try:
-			if pls is not None:
+			if plsp is not None:
 				raise Exception("Logger already initialized")
 		except NameError:
 			pass
-		pls = self
+		plsp = self
 
 		self.configuration_vars = {}
 		self.debug_modes:"dict[str,DebugMode]" = {}
@@ -265,8 +177,8 @@ class Logger:
 
 		self.LOGGER_HELPER = DynamicVariableContainer("LOGGER_HELPER")
 
-		pls._add_debug_mode("disabled", 0)
-		pls.get_debug_mode("disabled").set_override_do_ever_write(False)
+		plsp._add_debug_mode("disabled", 0)
+		plsp.get_debug_mode("disabled").set_override_do_ever_write(False)
 
 
 	
@@ -308,7 +220,7 @@ class Logger:
 	
 
 	def _update_state_after_adding_debug_mode(self, name_of_debug_mode, level):
-		# The below wrapper is what actually gets called when you do `pls().<insert name of debug mode>(...)`
+		# The below wrapper is what actually gets called when you do `plsp().<insert name of debug mode>(...)`
 		# NOTE: Remember, this is only for the global context.
 		def wrapper_for_global_handler(*args, **kwargs):
 			context = self.debug_contexts[self.configuration_vars["global_context"]]
@@ -316,7 +228,7 @@ class Logger:
 			context.handle(mode, self.active_debug_mode, *args, **kwargs)
 
 		# And here is the wrapper for when we specify a context.
-		# E.g., `pls().our_context.our_debug_mode(...)`...
+		# E.g., `plsp().our_context.our_debug_mode(...)`...
 		# This wrapper is the `our_debug_mode` part.
 		# The actual `our_context` is made in the `add_debug_context` method and it is a `DynamicVariableContainer`
 		#  instance that is a child of the `LOGGER_HELPER` instance.
@@ -405,4 +317,4 @@ We are doing things a bit different.
 We are using the `pls` as a singleton class of `Logger`.
 Its a bit of a hack but it makes the usage of this API pretty nice.
 """
-pls:"Logger" = Logger()
+plsp:"Logger" = Logger()
