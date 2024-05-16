@@ -58,6 +58,8 @@ class DebugContext:
 
 
 	def __init__(self, name:str) -> None:
+		self.name = name
+
 		self.format_layers:"list[IFormatter]" = []
 		self.final_formatter:"IFinalFormatter" = DefaultFinalFormatter()
 
@@ -149,8 +151,10 @@ class DebugContext:
 
 		str = ""
 		
+		is_first = True
 		for format_layer in self.format_layers:
-			str = format_layer.handle(str)
+			str = IFormatter.handle(format_layer, str, is_first)
+			is_first = False
 		
 		str = self.final_formatter.raw_handle(str)
 		

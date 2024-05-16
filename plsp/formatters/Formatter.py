@@ -12,6 +12,11 @@ class IFormatter(ABC):
 
 
 
+	def __init__(self):
+		super().__init__()
+
+
+
 	# NOTE: The point of having postfixes is so the final formatter can know the different pieces.
 	def _get_unique_postfix(self) -> str:
 		name = self.__class__.__name__
@@ -20,7 +25,8 @@ class IFormatter(ABC):
 
 
 
-	def _strip_postfixes(self, string:str) -> str:
+	@staticmethod
+	def _strip_postfixes(string:str) -> str:
 		# example string: `abc - foo|def - bar|ghi - hi|`
 
 		if not string.endswith("|"):
@@ -44,12 +50,14 @@ class IFormatter(ABC):
 				
 
 
-	def handle(self, string:str) -> str:
-		string = self._strip_postfixes(string)
-		addition = self._handle(string)
+	@staticmethod
+	def handle(inst, string:str, is_first: bool) -> str:
+		if not is_first:
+			string = IFormatter._strip_postfixes(string)
+		addition = inst._handle(string)
 		if addition is None:
 			raise Exception("The formatter did not return a string.")
-		return f"{addition}{self._get_unique_postfix()}"
+		return f"{addition}{inst._get_unique_postfix()}"
 
 
 

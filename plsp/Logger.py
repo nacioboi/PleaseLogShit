@@ -1,5 +1,7 @@
 from .DebugContext import DebugContext, DebugMode
 
+from pickle import dumps as pickle_X_dumps
+from pickle import loads as pickle_X_loads
 from typing import Any
 
 
@@ -151,6 +153,36 @@ class Logger:
 
 
 
+	@staticmethod
+	def _pickle_dump(inst) -> "dict":	
+		return {
+			"configuration_vars": pickle_X_dumps(inst.configuration_vars),
+			"debug_modes": pickle_X_dumps(inst.debug_modes),
+			"debug_contexts": pickle_X_dumps(inst.debug_contexts),
+			"active_debug_mode": pickle_X_dumps(inst.active_debug_mode)
+		}
+
+
+
+	@staticmethod
+	def _pickle_load(data:"dict") -> "Logger":
+		x = {}
+		for d in data:
+			x[d] = pickle_X_loads(data[d])
+		data = x
+		inst = Logger()
+		inst.configuration_vars = data["configuration_vars"]
+		inst.active_debug_mode = data["active_debug_mode"]
+		inst.debug_modes = data["debug_modes"]
+		inst.debug_contexts = data["debug_contexts"]
+		for name in inst.debug_contexts:
+			inst.LOGGER_HELPER.set(name, DynamicVariableContainer(name))
+		for name in inst.debug_modes:
+			inst._update_state_after_adding_debug_mode(name, inst.debug_modes[name].level)
+		return inst
+
+
+
 	def __init__(self) -> None:
 		"""
 		YOU MUST NEVER CALL THIS DIRECTLY.
@@ -161,14 +193,6 @@ class Logger:
 		Side Effects:
 		- Adds a "disabled" debug mode to the system.
 		"""
-		global plsp
-
-		try:
-			if plsp is not None:
-				raise Exception("Logger already initialized")
-		except NameError:
-			pass
-		plsp = self
 
 		self.configuration_vars = {}
 		self.debug_modes:"dict[str,DebugMode]" = {}
@@ -177,8 +201,8 @@ class Logger:
 
 		self.LOGGER_HELPER = DynamicVariableContainer("LOGGER_HELPER")
 
-		plsp._add_debug_mode("disabled", 0)
-		plsp.get_debug_mode("disabled").set_override_do_ever_write(False)
+		self._add_debug_mode("disabled", 0)
+		self.get_debug_mode("disabled").set_override_do_ever_write(False)
 
 
 	
@@ -308,13 +332,3 @@ class Logger:
 
 
 
-
-
-"""
-Below is the Logger global variable.
-We are doing things a bit different.
-
-We are using the `pls` as a singleton class of `Logger`.
-Its a bit of a hack but it makes the usage of this API pretty nice.
-"""
-plsp:"Logger" = Logger()
