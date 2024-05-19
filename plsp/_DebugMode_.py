@@ -17,7 +17,7 @@ class DebugMode:
 
 
 
-	def set_override_do_ever_write(self, do_ever_write: bool) -> None:
+	def set_override_is_active(self, do_ever_write: bool) -> None:
 		if self.override_instructions is None:
 			self.override_instructions = []
 		self.override_instructions.append(
@@ -41,3 +41,13 @@ class DebugMode:
 		self.override_instructions.append(
 			f"write_to_file={'None' if file_name is None else file_name}"
 		)
+
+
+
+
+
+
+
+__all__ = [
+	"DebugMode"
+]

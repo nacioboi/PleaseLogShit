@@ -1,12 +1,11 @@
-import sys
-from .DebugMode import DebugMode
-from .formatters.Formatter import IFormatter
-from .formatters.FinalFormatter import IFinalFormatter
+from .formatters._Formatter_ import IFormatter
+from .formatters._FinalFormatter_ import IFinalFormatter
 from .formatters.defaults import DefaultFinalFormatter
-from .Direction import IODirection
+from ._DebugMode_ import DebugMode
+from ._Direction_ import IODirection
 
 from io import IOBase, TextIOWrapper
-import base64
+import sys
 
 
 
@@ -57,13 +56,25 @@ class DebugContext:
 
 
 
+	__slots__ = (
+		"name",
+		"format_layers",
+		"final_formatter",
+		"is_active",
+		"directions",
+		"__write_to_handle",
+		"__write_to_file"
+	)
+
+
+
 	def __init__(self, name:str) -> None:
 		self.name = name
 
 		self.format_layers:"list[IFormatter]" = []
 		self.final_formatter:"IFinalFormatter" = DefaultFinalFormatter()
 
-		self.can_ever_write:"bool|None" = None
+		self.is_active:"bool|None" = None
 		self.directions:"list[IODirection]|None" = None
 
 
@@ -73,8 +84,8 @@ class DebugContext:
 
 
 
-	def set_can_ever_write(self, can_ever_write:bool) -> None:
-		self.can_ever_write = can_ever_write
+	def set_is_active(self, new_is_active:bool) -> None:
+		self.is_active = new_is_active
 
 
 
@@ -91,19 +102,19 @@ class DebugContext:
 
 
 
-	def _evaluate_instruction(self, instruction_part, arg_part):
+	def __evaluate_instruction(self, instruction_part, arg_part):
 		if instruction_part == "can_ever_write":
-			self.can_ever_write = eval(arg_part)
+			self.is_active = eval(arg_part)
 		
 		elif instruction_part == "write_to_handle":
-			self.write_to_handle = eval(arg_part)
+			self.__write_to_handle = eval(arg_part)
 
 		elif instruction_part == "write_to_file":
-			self.write_to_file = eval(arg_part)
+			self.__write_to_file = eval(arg_part)
 
 
 
-	def __add_contents_to_log(self, contents:str, direction: IODirection) -> None:
+	def __inner__add_contents_to_log(self, contents:str, direction: IODirection) -> None:
 		try:
 
 			f = None
@@ -134,26 +145,26 @@ class DebugContext:
 
 
 
-	def _add_contents_to_log(self, contents:str) -> None:
+	def __add_contents_to_log(self, contents:str) -> None:
 		assert self.directions is not None, "No directions to write to."
 		for direction in self.directions:
-			self.__add_contents_to_log(contents, direction)
+			self.__inner__add_contents_to_log(contents, direction)
 
 
 
-	def handle(self, debug_mode:"DebugMode", active_debug_level:"DebugMode", *args, **kwargs):
+	def __handle(self, debug_mode:"DebugMode", active_debug_level:"DebugMode", *args, **kwargs):
 		# QUICK NOTE: the `debug_mode` parameter should be used to change the output and the
 		# `active_debug_mode` parameter should be used to determine if we should write to the output.
 
 		# First check that this context is valid.
-		if self.can_ever_write is None and self.write_to_handle is None:
+		if self.is_active is None and self.__write_to_handle is None:
 			raise Exception("`can_ever_write` and `write_to_handle` cannot both be None.")
 
 		str = ""
 		
 		is_first = True
 		for format_layer in self.format_layers:
-			str = IFormatter.handle(format_layer, str, is_first)
+			str = IFormatter.__handle(format_layer, str, is_first)
 			is_first = False
 		
 		str = self.final_formatter.raw_handle(str)
@@ -162,7 +173,7 @@ class DebugContext:
 
 		for instruction in override_instructions:
 			instruction_part, arg_part = instruction.split("=")
-			self._evaluate_instruction(instruction_part, arg_part)
+			self.__evaluate_instruction(instruction_part, arg_part)
 
 		# All conditions where we cannot write.
 		if active_debug_level.level == -1 and debug_mode.level == -1:
@@ -170,7 +181,7 @@ class DebugContext:
 				return
 		elif active_debug_level.level < debug_mode.level:
 			return
-		elif self.can_ever_write is None or (self.can_ever_write is not None and not self.can_ever_write):
+		elif self.is_active is None or (self.is_active is not None and not self.is_active):
 			return
 
 		if active_debug_level.level >= debug_mode.level:
@@ -178,4 +189,11 @@ class DebugContext:
 			return
 
 		raise Exception("This should never happen.")
-			
+
+
+
+
+
+
+
+__all__ = ["DebugContext"]

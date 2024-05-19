@@ -8,23 +8,26 @@ import base64
 
 
 
-class IFinalFormatter(ABC):
+class IFormatter(ABC):
+
+
+
+	def __init__(self):
+		super().__init__()
 
 
 
 	# NOTE: The point of having postfixes is so the final formatter can know the different pieces.
-	def _get_unique_postfix(self) -> str:
+	def __get_unique_postfix(self) -> str:
 		name = self.__class__.__name__
 		b64_name = base64.b64encode(name.encode("utf-8")).decode("utf-8")
 		return f"|`FORMATTER_POSTFIX`{b64_name}|"
 
 
 
-	def _strip_postfixes(self, string:str) -> str:
+	@staticmethod
+	def __strip_postfixes(string:str) -> str:
 		# example string: `abc - foo|def - bar|ghi - hi|`
-
-		if string == "":
-			return string
 
 		if not string.endswith("|"):
 			raise Exception("This should never happen.")
@@ -47,6 +50,27 @@ class IFinalFormatter(ABC):
 				
 
 
+	@staticmethod
+	def __handle(inst, string:str, is_first: bool) -> str:
+		if not is_first:
+			string = IFormatter.__strip_postfixes(string)
+		addition = inst._handle(string)
+		if addition is None:
+			raise Exception("The formatter did not return a string.")
+		return f"{addition}{inst._get_unique_postfix()}"
+
+
+
 	@abstractmethod
-	def raw_handle(self, string:str) -> str:
+	def _handle(self, string:str) -> str:
 		pass
+
+
+
+
+
+
+
+__all__ = [
+	"IFormatter"
+]

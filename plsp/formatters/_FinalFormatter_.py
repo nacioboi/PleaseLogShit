@@ -8,12 +8,7 @@ import base64
 
 
 
-class IFormatter(ABC):
-
-
-
-	def __init__(self):
-		super().__init__()
+class IFinalFormatter(ABC):
 
 
 
@@ -25,9 +20,11 @@ class IFormatter(ABC):
 
 
 
-	@staticmethod
-	def _strip_postfixes(string:str) -> str:
+	def _strip_postfixes(self, string:str) -> str:
 		# example string: `abc - foo|def - bar|ghi - hi|`
+
+		if string == "":
+			return string
 
 		if not string.endswith("|"):
 			raise Exception("This should never happen.")
@@ -50,17 +47,16 @@ class IFormatter(ABC):
 				
 
 
-	@staticmethod
-	def handle(inst, string:str, is_first: bool) -> str:
-		if not is_first:
-			string = IFormatter._strip_postfixes(string)
-		addition = inst._handle(string)
-		if addition is None:
-			raise Exception("The formatter did not return a string.")
-		return f"{addition}{inst._get_unique_postfix()}"
-
-
-
 	@abstractmethod
-	def _handle(self, string:str) -> str:
+	def raw_handle(self, string:str) -> str:
 		pass
+
+
+
+
+
+
+
+__all__ = [
+	"IFinalFormatter"
+]

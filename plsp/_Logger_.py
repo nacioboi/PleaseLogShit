@@ -1,4 +1,4 @@
-from .DebugContext import DebugContext, DebugMode
+from ._DebugContext_ import DebugContext, DebugMode
 
 from pickle import dumps as pickle_X_dumps
 from pickle import loads as pickle_X_loads
@@ -202,7 +202,7 @@ class Logger:
 		self.LOGGER_HELPER = DynamicVariableContainer("LOGGER_HELPER")
 
 		self._add_debug_mode("disabled", 0)
-		self.get_debug_mode("disabled").set_override_do_ever_write(False)
+		self.get_debug_mode("disabled").set_override_is_active(False)
 
 
 	
@@ -332,3 +332,8 @@ class Logger:
 
 
 
+
+
+__all__ = [
+	"Logger"
+]

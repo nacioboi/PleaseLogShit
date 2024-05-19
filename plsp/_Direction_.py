@@ -1,5 +1,7 @@
 import dataclasses
 
+
+
 @dataclasses.dataclass
 class IODirection:
 	do_encode: bool
@@ -9,3 +11,9 @@ class IODirection:
 	def validate(self):
 		if self.file_handle and self.file_path:
 			raise ValueError("Cannot have both file handle and file path set.")
+		
+
+
+__all__ = [
+	"IODirection"
+]

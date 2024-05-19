@@ -1,4 +1,4 @@
-from .Logger import Logger
+from ._Logger_ import Logger
 
 from os.path import exists as os_path_X_exists
 from os import remove as os_X_remove
@@ -69,3 +69,9 @@ def load(inst_name:str) -> "Logger":
 			pickle_X_loads(file.read())
 		)
 				
+
+
+__all__ = [
+	"save",
+	"load"
+]

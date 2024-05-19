@@ -1,4 +1,4 @@
-from .Formatter import IFormatter
+from ._Formatter_ import IFormatter
 
 from typing import Callable
 from datetime import datetime
