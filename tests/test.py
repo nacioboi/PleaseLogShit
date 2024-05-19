@@ -1,8 +1,14 @@
+import subprocess
+import sys, os
+UP_DIR=os.path.abspath(os.path.join(
+		os.path.dirname(__file__),
+		".."
+	)
+)
+sys.path.append(UP_DIR)
+
 from plsp import Logger, save_logger
 from plsp.formatters.bundled import Time_Formatter
-
-import subprocess
-import sys
 
 
 
@@ -83,4 +89,4 @@ save_logger(logger, "test_logger")
 
 # SEE: `_inner_test.py` for the actual test.
 # We separate in order to test the `save_logger` and `load_logger` functions.
-subprocess.run(f"{sys.executable} _inner_test.py", shell=True, cwd=".")
+subprocess.run(f"{sys.executable} test_inner.py", shell=True, cwd="tests")

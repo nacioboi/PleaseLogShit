@@ -1,12 +1,18 @@
+import sys, os
+UP_DIR=os.path.abspath(os.path.join(
+		os.path.dirname(__file__),
+		".."
+	)
+)
+sys.path.append(UP_DIR)
+
 from plsp import load_logger
-import time
 
 plsp = load_logger("test_logger")
 
 
 
 plsp().info("This is using the generic context.")
-time.sleep(0.1)
 plsp().info("It works since we set a global context.")
 
 
