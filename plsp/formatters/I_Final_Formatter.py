@@ -1,7 +1,7 @@
 from abc import ABC as __abc_X_ABC
-from abc import abstractmethod as __abc_X_abstractmethod
+from abc import abstractmethod as _abc_X_abstractmethod
 
-import base64 as __base64
+import base64 as _base64
 
 
 
@@ -16,7 +16,7 @@ class I_Final_Formatter(__abc_X_ABC):
 	# NOTE: The point of having postfixes is so the final formatter can know the different pieces.
 	def _get_unique_postfix(self) -> str:
 		name = self.__class__.__name__
-		b64_name = __base64.b64encode(name.encode("utf-8")).decode("utf-8")
+		b64_name = _base64.b64encode(name.encode("utf-8")).decode("utf-8")
 		return f"|`FORMATTER_POSTFIX`{b64_name}|"
 
 
@@ -48,7 +48,7 @@ class I_Final_Formatter(__abc_X_ABC):
 				
 
 
-	@__abc_X_abstractmethod
+	@_abc_X_abstractmethod
 	def raw_handle(self, string:str) -> str:
 		pass
 

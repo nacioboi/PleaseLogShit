@@ -252,7 +252,7 @@ class Logger:
 		def wrapper_for_global_handler(*args, **kwargs):
 			context = self.debug_contexts[self.configuration_vars["global_context"]]
 			mode = self.debug_modes[name_of_debug_mode]
-			context.__handle(mode, self.active_debug_mode, *args, **kwargs)
+			context._handle(mode, self.active_debug_mode, *args, **kwargs)
 
 		# And here is the wrapper for when we specify a context.
 		# E.g., `plsp().our_context.our_debug_mode(...)`...
@@ -261,7 +261,7 @@ class Logger:
 		#  instance that is a child of the `LOGGER_HELPER` instance.
 		def wrapper_for_context_specified_handler(context, *args, **kwargs):
 			mode = self.debug_modes[name_of_debug_mode]
-			context.handle(mode, self.active_debug_mode, *args, **kwargs)
+			context._handle(mode, self.active_debug_mode, *args, **kwargs)
 
 		# We only want to use the `wrapper_for_global_handler` if the global context is set.
 		if self.configuration_vars.get("global_context") is not None:

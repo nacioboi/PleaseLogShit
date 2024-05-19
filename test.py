@@ -1,6 +1,9 @@
 from plsp import Logger, save_logger
 from plsp.formatters.bundled import Time_Formatter
 
+import subprocess
+import sys
+
 
 
 # NOTE: ONLY ONE LOGGER SHOULD EVER BE CREATED PER PROGRAM.
@@ -80,5 +83,4 @@ save_logger(logger, "test_logger")
 
 # SEE: `_inner_test.py` for the actual test.
 # We separate in order to test the `save_logger` and `load_logger` functions.
-import subprocess, sys
 subprocess.run(f"{sys.executable} _inner_test.py", shell=True, cwd=".")

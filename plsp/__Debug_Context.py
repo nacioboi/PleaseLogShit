@@ -151,14 +151,14 @@ class Debug_Context:
 
 
 
-	def __add_contents_to_log(self, contents:str) -> None:
+	def _add_contents_to_log(self, contents:str) -> None:
 		assert self.directions is not None, "No directions to write to."
 		for direction in self.directions:
 			self.__inner__add_contents_to_log(contents, direction)
 
 
 
-	def __handle(self, debug_mode:"Debug_Mode", active_debug_level:"Debug_Mode", *args, **kwargs):
+	def _handle(self, debug_mode:"Debug_Mode", active_debug_level:"Debug_Mode", *args, **kwargs):
 		# QUICK NOTE: the `debug_mode` parameter should be used to change the output and the
 		# `active_debug_mode` parameter should be used to determine if we should write to the output.
 
@@ -170,7 +170,7 @@ class Debug_Context:
 		
 		is_first = True
 		for format_layer in self.format_layers:
-			str = I_Formatter.__handle(format_layer, str, is_first)
+			str = I_Formatter._handle(format_layer, str, is_first)
 			is_first = False
 		
 		str = self.final_formatter.raw_handle(str)

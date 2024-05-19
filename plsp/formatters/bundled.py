@@ -1,7 +1,7 @@
 from .I_Formatter import I_Formatter as __I_Formatter
 
 from typing import Callable as __typing_X_Callable
-from datetime import datetime as __datetime_X_datetime
+from datetime import datetime as _datetime_X_datetime
 
 
 
@@ -28,8 +28,8 @@ class Time_Formatter (__I_Formatter):
 		else:
 			self.format_string = further_parse_data(self.format_string)
 
-	def _handle(self, string:str) -> str:
-		formatted_time = __datetime_X_datetime.now().strftime(self.format_string)
+	def _impl_handle(self, string:str) -> str:
+		formatted_time = _datetime_X_datetime.now().strftime(self.format_string)
 		ret_str = ""
 		sep = "|||"
 		for line in string.split("\n"):
