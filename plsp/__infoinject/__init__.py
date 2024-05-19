@@ -7,7 +7,7 @@ import re
 
 
 
-class _InfoInjector:
+class __Info_Injector:
 
 
 
@@ -393,7 +393,7 @@ class _InfoInjector:
 
 
 
-InfoInjector = _InfoInjector()
+infoinject = __Info_Injector()
 
 
 
@@ -401,6 +401,4 @@ InfoInjector = _InfoInjector()
 
 
 
-__all__ = [
-	"InfoInjector"
-]
+

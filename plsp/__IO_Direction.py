@@ -3,7 +3,7 @@ import dataclasses
 
 
 @dataclasses.dataclass
-class IODirection:
+class IO_Direction:
 	do_encode: bool
 	file_handle: int|None
 	file_path: str|None
@@ -13,7 +13,3 @@ class IODirection:
 			raise ValueError("Cannot have both file handle and file path set.")
 		
 
-
-__all__ = [
-	"IODirection"
-]

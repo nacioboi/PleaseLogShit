@@ -33,25 +33,29 @@ my_physics = physics()
 
 
 
-from plsp.infoinject import InfoInjector
+from plsp import infoinject
 
-@InfoInjector.add_instruction(line=1, debug_mode="info", debug_context="generic", args_for_logger=(
-	f"n = {InfoInjector.VariableReference('n')}",
+
+
+@infoinject.add_instruction(line=1, debug_mode="info", debug_context="generic", args_for_logger=(
+	f"n = {infoinject.VariableReference('n')}",
 ))
-@InfoInjector.add_instruction(line=2, debug_mode="detail", debug_context="generic", args_for_logger=(
+@infoinject.add_instruction(line=2, debug_mode="detail", debug_context="generic", args_for_logger=(
 	f"n is", "less than or equal to 1"
 ),
 	end="\n.\n"
 )
-@InfoInjector.add_instruction(line=4, debug_mode="info", debug_context="generic", args_for_logger=(
+@infoinject.add_instruction(line=4, debug_mode="info", debug_context="generic", args_for_logger=(
 	f"n is greater than 1",
 	f"Now actually calculating... n-1 and n-2"
 ))
-@InfoInjector.inject(globals(), locals())
+@infoinject.inject(globals(), locals())
 def fib(n):
 	if n <= 1:
 		return n
 	else:
 		return fib(n-1) + fib(n-2)
+
+
 
 fib(5)

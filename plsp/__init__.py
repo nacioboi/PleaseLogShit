@@ -9,15 +9,16 @@ this means that the interesting parts of the code stay separate from printing an
 
 
 
-from ._Logger_ import Logger
-from ._SharedLogger_ import load as load_logger
-from ._SharedLogger_ import save as save_logger
-from ._DebugContext_ import DebugContext
-from ._DebugMode_ import DebugMode
-from ._Direction_ import IODirection
+from .__Shared_Logger import load as load_logger
+from .__Shared_Logger import save as save_logger
+from .__Logger import Logger
+from .__Debug_Context import Debug_Context
+from .__Debug_Mode import Debug_Mode
+from .__IO_Direction import IO_Direction
 
-from . import infoinject
+from .__infoinject import infoinject
 from . import formatters
+
 
 
 

@@ -1,8 +1,8 @@
-from .formatters._Formatter_ import IFormatter
-from .formatters._FinalFormatter_ import IFinalFormatter
-from .formatters.defaults import DefaultFinalFormatter
-from ._DebugMode_ import DebugMode
-from ._Direction_ import IODirection
+from .formatters.I_Formatter import I_Formatter
+from .formatters.I_Final_Formatter import I_Final_Formatter
+from .formatters.defaults import Default_Final_Formatter
+from .__Debug_Mode import Debug_Mode
+from .__IO_Direction import IO_Direction
 
 from io import IOBase, TextIOWrapper
 import sys
@@ -52,7 +52,7 @@ def _debug_print(self, prefix:str, *args, **kwargs):
 
 
 
-class DebugContext:
+class Debug_Context:
 
 
 
@@ -71,15 +71,15 @@ class DebugContext:
 	def __init__(self, name:str) -> None:
 		self.name = name
 
-		self.format_layers:"list[IFormatter]" = []
-		self.final_formatter:"IFinalFormatter" = DefaultFinalFormatter()
+		self.format_layers:"list[I_Formatter]" = []
+		self.final_formatter:"I_Final_Formatter" = Default_Final_Formatter()
 
 		self.is_active:"bool|None" = None
-		self.directions:"list[IODirection]|None" = None
+		self.directions:"list[IO_Direction]|None" = None
 
 
 
-	def set_final_formatter(self, formatter:"IFinalFormatter") -> None:
+	def set_final_formatter(self, formatter:"I_Final_Formatter") -> None:
 		self.final_formatter = formatter
 
 
@@ -89,10 +89,16 @@ class DebugContext:
 
 
 
-	def add_direction(self, direction:IODirection) -> None:
+	def add_direction(self, do_encode:"bool", file_handle:"int|None"=None, file_path:"str|None"=None) -> None:
 		if self.directions is None:
 			self.directions = []
-		self.directions.append(direction)
+		self.directions.append(
+			IO_Direction(
+				do_encode=do_encode,
+				file_handle=file_handle,
+				file_path=file_path
+			)
+		)
 
 
 
@@ -114,7 +120,7 @@ class DebugContext:
 
 
 
-	def __inner__add_contents_to_log(self, contents:str, direction: IODirection) -> None:
+	def __inner__add_contents_to_log(self, contents:str, direction: IO_Direction) -> None:
 		try:
 
 			f = None
@@ -152,7 +158,7 @@ class DebugContext:
 
 
 
-	def __handle(self, debug_mode:"DebugMode", active_debug_level:"DebugMode", *args, **kwargs):
+	def __handle(self, debug_mode:"Debug_Mode", active_debug_level:"Debug_Mode", *args, **kwargs):
 		# QUICK NOTE: the `debug_mode` parameter should be used to change the output and the
 		# `active_debug_mode` parameter should be used to determine if we should write to the output.
 
@@ -164,7 +170,7 @@ class DebugContext:
 		
 		is_first = True
 		for format_layer in self.format_layers:
-			str = IFormatter.__handle(format_layer, str, is_first)
+			str = I_Formatter.__handle(format_layer, str, is_first)
 			is_first = False
 		
 		str = self.final_formatter.raw_handle(str)
@@ -196,4 +202,3 @@ class DebugContext:
 
 
 
-__all__ = ["DebugContext"]

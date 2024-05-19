@@ -1,8 +1,10 @@
-from ._DebugContext_ import DebugContext, DebugMode
+from .__Debug_Context import Debug_Context, Debug_Mode
 
 from pickle import dumps as pickle_X_dumps
 from pickle import loads as pickle_X_loads
-from typing import Any
+from typing import Any, Literal, TypeAlias
+
+Logger_X_set__ACCEPTED_LITS_T = Literal["global_context"]
 
 
 
@@ -178,7 +180,7 @@ class Logger:
 		for name in inst.debug_contexts:
 			inst.LOGGER_HELPER.set(name, DynamicVariableContainer(name))
 		for name in inst.debug_modes:
-			inst._update_state_after_adding_debug_mode(name, inst.debug_modes[name].level)
+			inst.__update_state_after_adding_debug_mode(name, inst.debug_modes[name].level)
 		return inst
 
 
@@ -195,14 +197,15 @@ class Logger:
 		"""
 
 		self.configuration_vars = {}
-		self.debug_modes:"dict[str,DebugMode]" = {}
-		self.debug_contexts = {}
-		self.active_debug_mode = None
+		self.debug_modes:"dict[str,Debug_Mode]" = {}
+		self.debug_contexts:"dict[str,Debug_Context]" = {}
 
 		self.LOGGER_HELPER = DynamicVariableContainer("LOGGER_HELPER")
 
-		self._add_debug_mode("disabled", 0)
-		self.get_debug_mode("disabled").set_override_is_active(False)
+		self.__add_debug_mode("disabled", 0)
+		self.debug_modes["disabled"].set_override_is_active(False)
+
+		self.active_debug_mode:"Debug_Mode" = self.debug_modes["disabled"]
 
 
 	
@@ -222,7 +225,7 @@ class Logger:
 
 
 
-	def _add_debug_mode(self, name:"str", level:"int"):
+	def __add_debug_mode(self, name:"str", level:"int"):
 		"""
 		YOU MUST NEVER CALL THIS DIRECTLY.
 
@@ -234,22 +237,22 @@ class Logger:
 			raise Exception(f"Debug mode {name} already exists.")
 
 		# Construct the debug mode.
-		self.debug_modes[name] = DebugMode(name, level, None)
+		self.debug_modes[name] = Debug_Mode(name, level, None)
 
-		self._update_state_after_adding_debug_mode(
+		self.__update_state_after_adding_debug_mode(
 			name,
 			level
 		)
 
 	
 
-	def _update_state_after_adding_debug_mode(self, name_of_debug_mode, level):
+	def __update_state_after_adding_debug_mode(self, name_of_debug_mode, level):
 		# The below wrapper is what actually gets called when you do `plsp().<insert name of debug mode>(...)`
 		# NOTE: Remember, this is only for the global context.
 		def wrapper_for_global_handler(*args, **kwargs):
 			context = self.debug_contexts[self.configuration_vars["global_context"]]
 			mode = self.debug_modes[name_of_debug_mode]
-			context.handle(mode, self.active_debug_mode, *args, **kwargs)
+			context.__handle(mode, self.active_debug_mode, *args, **kwargs)
 
 		# And here is the wrapper for when we specify a context.
 		# E.g., `plsp().our_context.our_debug_mode(...)`...
@@ -298,29 +301,19 @@ class Logger:
 		else:
 			level = len(self.debug_modes)+1
 
-		self._add_debug_mode(name, level)
+		self.__add_debug_mode(name, level)
 
 
 
 	def add_debug_context(self, name:"str"):
 		if name in self.debug_contexts:
 			raise Exception(f"Debug context {name} already exists.")
-		self.debug_contexts[name] = DebugContext(name)
+		self.debug_contexts[name] = Debug_Context(name)
 		self.LOGGER_HELPER.set(name, DynamicVariableContainer(name))
 
 
 
-	def get_debug_context(self, name:"str") -> "DebugContext":
-		return self.debug_contexts[name]
-	
-
-
-	def get_debug_mode(self, name:"str") -> "DebugMode":
-		return self.debug_modes[name]
-
-
-
-	def set(self, name:"str", value) -> None:
+	def set(self, name:"Logger_X_set__ACCEPTED_LITS_T", value) -> None:
 		accepted_vars = ["global_context"]
 
 		if name not in accepted_vars:
@@ -328,12 +321,9 @@ class Logger:
 
 		self.configuration_vars[name] = value
 
+		
 
 
 
 
 
-
-__all__ = [
-	"Logger"
-]

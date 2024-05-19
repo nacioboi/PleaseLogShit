@@ -7,7 +7,7 @@ import dataclasses
 
 
 @dataclasses.dataclass
-class DebugMode:
+class Debug_Mode:
 
 
 
@@ -48,6 +48,3 @@ class DebugMode:
 
 
 
-__all__ = [
-	"DebugMode"
-]

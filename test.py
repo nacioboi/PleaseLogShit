@@ -1,19 +1,16 @@
-import plsp
-import sys
-
-
-
-
+from plsp import Logger, save_logger
+from plsp.formatters.bundled import Time_Formatter
 
 
 
 # NOTE: ONLY ONE LOGGER SHOULD EVER BE CREATED PER PROGRAM.
-logger = plsp.Logger()
+logger = Logger()
 
 
 
-
-# use below to separate log files based on debug mode instead of debug context.
+# Use below to separate log files based on debug mode instead of debug context.
+# NOTE: NOT YET SUPPORTED...
+# TODO: IMPLEMENT.
 #plsp.set("io_based_on_mode", True)
 
 
@@ -41,40 +38,47 @@ logger.add_debug_mode("error", separate=True)
 
 # START OF MODIFYING DEBUG CONTEXTS #
 
-# You may modify the debug contexts after they are created.
+# Modification of debug context must be done separately to creation.
 # Access the debug context by using the `Logger.debug_contexts` dictionary.
 
-logger.get_debug_context("generic").set_is_active(True)
-logger.get_debug_context("generic").add_direction(IODirection(False, sys.stdout.fileno(), None))
-logger.get_debug_context("rendering").set_is_active(True)
-logger.get_debug_context("rendering").add_direction(IODirection(False, sys.stdout.fileno(), None))
-logger.get_debug_context("physics").set_is_active(True)
-logger.get_debug_context("physics").add_direction(IODirection(False, sys.stdout.fileno(), None))
+logger.debug_contexts["generic"].set_is_active(True)
+logger.debug_contexts["generic"].add_direction(
+	do_encode=False,
+	file_handle=sys.stdout.fileno(),
+	file_path=None
+)
+logger.debug_contexts["rendering"].set_is_active(True)
+logger.debug_contexts["rendering"].add_direction(
+	do_encode=False,
+	file_handle=sys.stdout.fileno(),
+	file_path=None
+)
+logger.debug_contexts["physics"].set_is_active(True)
+logger.debug_contexts["physics"].add_direction(
+	do_encode=False,
+	file_handle=sys.stdout.fileno(),
+	file_path=None
+)
 					       
 # The below will add the time before each log message.
-logger.get_debug_context("generic").add_format_layer(TimeFormatter())
-logger.get_debug_context("rendering").add_format_layer(TimeFormatter())
-logger.get_debug_context("physics").add_format_layer(TimeFormatter())
-#
-## The below will add which ever function called the log message.
-#plsp.get_debug_context("generic").add_format_layer(CallerFormatter)
-#plsp.get_debug_context("rendering").add_format_layer(CallerFormatter)
-#plsp.get_debug_context("physics").add_format_layer(CallerFormatter)
-#
+logger.debug_contexts["generic"].add_format_layer(Time_Formatter())
+logger.debug_contexts["rendering"].add_format_layer(Time_Formatter())
+logger.debug_contexts["physics"].add_format_layer(Time_Formatter())
 
 # END OF MODIFYING DEBUG CONTEXTS #
 
 
 
+#
 # Now we can use the debug contexts to log messages.
+#
+
 logger.set_debug_mode("info")
+save_logger(logger, "test_logger")
 
 
 
-plsp.save_logger(logger, "test_logger")
-
-
-
-# Run...
+# SEE: `_inner_test.py` for the actual test.
+# We separate in order to test the `save_logger` and `load_logger` functions.
 import subprocess, sys
 subprocess.run(f"{sys.executable} _inner_test.py", shell=True, cwd=".")

@@ -1,5 +1,4 @@
-from ._Formatter_ import IFormatter
-from ._FinalFormatter_ import IFinalFormatter
+from .I_Final_Formatter import I_Final_Formatter as __I_Final_Formatter
 
 
 
@@ -7,7 +6,7 @@ from ._FinalFormatter_ import IFinalFormatter
 
 
 
-class DefaultFinalFormatter(IFinalFormatter):
+class Default_Final_Formatter(__I_Final_Formatter):
 
 
 

@@ -1,4 +1,4 @@
-from ._Logger_ import Logger
+from .__Logger import Logger
 
 from os.path import exists as os_path_X_exists
 from os import remove as os_X_remove
@@ -71,7 +71,6 @@ def load(inst_name:str) -> "Logger":
 				
 
 
-__all__ = [
-	"save",
-	"load"
-]
+
+
+

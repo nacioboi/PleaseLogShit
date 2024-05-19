@@ -1,11 +1,11 @@
-from ._Formatter_ import IFormatter
+from .I_Formatter import I_Formatter as __I_Formatter
 
-from typing import Callable
-from datetime import datetime
+from typing import Callable as __typing_X_Callable
+from datetime import datetime as __datetime_X_datetime
 
 
 
-class TimeFormatter (IFormatter):
+class Time_Formatter (__I_Formatter):
 	def __default_further_parse_data(self, string:str) -> str:
 		rd_or_st_or_th = None
 		day_part = string.split("/")[0]
@@ -20,7 +20,7 @@ class TimeFormatter (IFormatter):
 			rd_or_st_or_th = "th"
 		return f"{day_part}{rd_or_st_or_th}/{rest_part}"
 
-	def __init__(self, format_string:"str|None"=None, further_parse_data:"Callable[[str],str]|None"=None):
+	def __init__(self, format_string:"str|None"=None, further_parse_data:"__typing_X_Callable[[str],str]|None"=None):
 		super().__init__()
 		self.format_string = "%d/%m/%y@%H:%M:%S.%f" if not format_string else format_string
 		if further_parse_data is None:
@@ -29,7 +29,7 @@ class TimeFormatter (IFormatter):
 			self.format_string = further_parse_data(self.format_string)
 
 	def _handle(self, string:str) -> str:
-		formatted_time = datetime.now().strftime(self.format_string)
+		formatted_time = __datetime_X_datetime.now().strftime(self.format_string)
 		ret_str = ""
 		sep = "|||"
 		for line in string.split("\n"):
