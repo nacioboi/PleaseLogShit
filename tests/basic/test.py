@@ -2,7 +2,7 @@ import subprocess
 import sys, os
 UP_DIR=os.path.abspath(os.path.join(
 		os.path.dirname(__file__),
-		".."
+		"..",".."
 	)
 )
 sys.path.append(UP_DIR)
@@ -89,4 +89,4 @@ save_logger(logger, "test_logger")
 
 # SEE: `_inner_test.py` for the actual test.
 # We separate in order to test the `save_logger` and `load_logger` functions.
-subprocess.run(f"{sys.executable} test_inner.py", shell=True, cwd="tests")
+subprocess.run(f"{sys.executable} test_inner.py", shell=True, cwd=f"tests{os.path.sep}basic")

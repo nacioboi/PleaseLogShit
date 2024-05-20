@@ -186,16 +186,6 @@ class Logger:
 
 
 	def __init__(self) -> None:
-		"""
-		YOU MUST NEVER CALL THIS DIRECTLY.
-
-		Raises:
-		    Exception: If the Logger is already initialized. Hence why i said never call this directly.
-
-		Side Effects:
-		- Adds a "disabled" debug mode to the system.
-		"""
-
 		self.configuration_vars = {}
 		self.debug_modes:"dict[str,Debug_Mode]" = {}
 		self.debug_contexts:"dict[str,Debug_Context]" = {}
@@ -215,12 +205,6 @@ class Logger:
 
 
 	def set_debug_mode(self, name:"str") -> None:
-		"""
-		Sets the active debug mode.
-
-		Args:
-		    name (str): The name of the debug mode to set as active.
-		"""
 		self.active_debug_mode = self.debug_modes[name]
 
 

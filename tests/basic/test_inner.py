@@ -1,7 +1,7 @@
 import sys, os
 UP_DIR=os.path.abspath(os.path.join(
 		os.path.dirname(__file__),
-		".."
+		"..",".."
 	)
 )
 sys.path.append(UP_DIR)
@@ -28,8 +28,7 @@ class physics:
 		plsp().physics.detail("The physics engine in this engine is pretty simple!")
 
 
-#my_renderer = renderer()
-my_physics = physics()
+my_renderer = renderer()
 
 plsp.set_debug_mode("detail")
 
@@ -45,19 +44,23 @@ from plsp import infoinject
 
 
 
-@infoinject.add_instruction(line=1, debug_mode="info", debug_context="generic", args_for_logger=(
-	f"n = {infoinject.VariableReference('n')}",
+infoinject.set_name_of_logger("plsp")
+
+
+
+@infoinject.add_instruction("fib", line=1, debug_mode="info", debug_context="generic", args_for_logger=(
+	f"n = {infoinject.Var_Ref('n')}",
 ))
-@infoinject.add_instruction(line=2, debug_mode="detail", debug_context="generic", args_for_logger=(
+@infoinject.add_instruction("fib", line=2, debug_mode="detail", debug_context="generic", args_for_logger=(
 	f"n is", "less than or equal to 1"
 ),
 	end="\n.\n"
 )
-@infoinject.add_instruction(line=4, debug_mode="info", debug_context="generic", args_for_logger=(
+@infoinject.add_instruction("fib", line=4, debug_mode="info", debug_context="generic", args_for_logger=(
 	f"n is greater than 1",
 	f"Now actually calculating... n-1 and n-2"
 ))
-@infoinject.inject(globals(), locals())
+@infoinject.inject("fib", globals(), locals())
 def fib(n):
 	if n <= 1:
 		return n
