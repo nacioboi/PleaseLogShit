@@ -8,7 +8,7 @@ sys.path.append(UP_DIR)
 
 from plsp import load_logger
 
-plsp = load_logger("test_logger")
+plsp = load_logger("_test_logger_")
 
 
 
@@ -30,7 +30,7 @@ class physics:
 
 my_renderer = renderer()
 
-plsp.set_debug_mode("detail")
+plsp.set_active_debug_mode("detail")
 
 my_physics = physics()
 
@@ -69,4 +69,4 @@ def fib(n):
 
 
 
-fib(5)
+fib(2)

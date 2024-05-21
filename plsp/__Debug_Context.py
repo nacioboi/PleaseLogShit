@@ -1,50 +1,10 @@
-from .formatters.I_Formatter import I_Formatter
+from .formatters.Logging_Segment_Generator import I_Logging_Segment_Generator
 from .formatters.I_Final_Formatter import I_Final_Formatter
-from .formatters.defaults import Default_Final_Formatter
 from .__Debug_Mode import Debug_Mode
 from .__IO_Direction import IO_Direction
 
 from io import IOBase, TextIOWrapper
 import sys
-
-
-
-
-
-
-
-def _debug_print(self, prefix:str, *args, **kwargs):
-
-	"""
-	DO NOT CALL THIS DIRECTLY.
-
-	At the end of the day, this is our special function that actually prints to the screen (or file).
-
-	Args:
-		prefix (str): 	The prefix to the log message.
-		*args: 		The log message, works like the `print` function.
-		**kwargs: 	The keyword arguments to pass to the print function.
-				  Currently, only the `end` keyword argument is supported.
-
-	Raises:
-	    Exception: If an unknown keyword argument is passed.
-	"""
-
-	str = f"{prefix}"
-	for arg in args:
-		str += f"{arg} "
-	str += "\033[0m"
-
-	for kwarg in kwargs:
-		if kwarg == "end":
-			continue
-		else:
-			raise Exception(f"Unknown keyword argument {kwarg}.")
-
-	if "end" in kwargs:
-		str += kwargs["end"]
-
-	self._add_contents_to_log(str)
 
 
 
@@ -58,7 +18,7 @@ class Debug_Context:
 
 	__slots__ = (
 		"name",
-		"format_layers",
+		"segment_generators",
 		"final_formatter",
 		"is_active",
 		"directions",
@@ -71,8 +31,8 @@ class Debug_Context:
 	def __init__(self, name:str) -> None:
 		self.name = name
 
-		self.format_layers:"list[I_Formatter]" = []
-		self.final_formatter:"I_Final_Formatter" = Default_Final_Formatter()
+		self.segment_generators:"list[I_Logging_Segment_Generator]" = []
+		self.final_formatter:"I_Final_Formatter|None" = None
 
 		self.is_active:"bool|None" = None
 		self.directions:"list[IO_Direction]|None" = None
@@ -102,14 +62,13 @@ class Debug_Context:
 
 
 
-	def add_format_layer(self, formatter):
-		self.format_layers.append(formatter)
-
+	def add_logging_segment(self, formatter):
+		self.segment_generators.append(formatter)
 
 
 
 	def __evaluate_instruction(self, instruction_part, arg_part):
-		if instruction_part == "can_ever_write":
+		if instruction_part == "is_active":
 			self.is_active = eval(arg_part)
 		
 		elif instruction_part == "write_to_handle":
@@ -143,7 +102,7 @@ class Debug_Context:
 				raise Exception("No file handle to write to.")
 			
 			f.write(contents)
-			f.write("\n")
+			f.flush()
 
 		finally:
 			if f and (not direction.file_handle in [1,2]) and not f.closed:
@@ -162,22 +121,29 @@ class Debug_Context:
 		# QUICK NOTE: the `debug_mode` parameter should be used to change the output and the
 		# `active_debug_mode` parameter should be used to determine if we should write to the output.
 
-		# First check that this context is valid.
-		if self.is_active is None and self.__write_to_handle is None:
-			raise Exception("`can_ever_write` and `write_to_handle` cannot both be None.")
+		s = ""
+		for arg in args:
+			s += f"{str(arg)} "
 
-		str = ""
-		
-		is_first = True
-		for format_layer in self.format_layers:
-			str = I_Formatter._handle(format_layer, str, is_first)
-			is_first = False
-		
-		str = self.final_formatter.raw_handle(str)
-		
-		override_instructions = debug_mode.override_instructions or []
+		ACCEPTED_KWARGS = ["end"]
+		for kwarg in kwargs:
+			if kwarg not in ACCEPTED_KWARGS:
+				raise Exception(f"Unknown keyword argument {kwarg}.")
 
-		for instruction in override_instructions:
+		if "end" in kwargs:
+			s += kwargs["end"]
+		else:
+			s += "\n"
+		
+		formatted_s = ""
+		for formatter in self.segment_generators:
+			formatted_s += I_Logging_Segment_Generator._handle(formatter)
+		
+		s = I_Final_Formatter._handle(self.final_formatter, formatted_s, s)
+		
+		overridden_instructions = debug_mode.overridden_instructions or []
+
+		for instruction in overridden_instructions:
 			instruction_part, arg_part = instruction.split("=")
 			self.__evaluate_instruction(instruction_part, arg_part)
 
@@ -191,7 +157,7 @@ class Debug_Context:
 			return
 
 		if active_debug_level.level >= debug_mode.level:
-			_debug_print(self, str, *args, **kwargs)
+			self._add_contents_to_log(s)
 			return
 
 		raise Exception("This should never happen.")

@@ -1,5 +1,6 @@
 from .__Debug_Context import Debug_Context, Debug_Mode
 
+import inspect
 from pickle import dumps as pickle_X_dumps
 from pickle import loads as pickle_X_loads
 from typing import Any, Literal, TypeAlias
@@ -154,15 +155,31 @@ class Logger:
 	"""
 
 
+	@staticmethod
+	def _pickle_dump_debug_contexts(inst) -> "bytes":
+		ret_dict = {}
+		for key in inst.debug_contexts:
+			if not ret_dict.get(key):
+				ret_dict[key] = {}
+			ret_dict[key]["name"] = inst.debug_contexts[key].name
+			ret_dict[key]["segment_generators"] = inst.debug_contexts[key].segment_generators
+			source_code = inspect.getsource(inst.debug_contexts[key].final_formatter.__class__)
+			ret_dict[key]["final_formatter::source_code"] = source_code
+			ret_dict[key]["is_active"] = inst.debug_contexts[key].is_active
+			ret_dict[key]["directions"] = inst.debug_contexts[key].directions
+
+		return pickle_X_dumps(ret_dict)
+
+
 
 	@staticmethod
 	def _pickle_dump(inst) -> "dict":	
-		return {
-			"configuration_vars": pickle_X_dumps(inst.configuration_vars),
-			"debug_modes": pickle_X_dumps(inst.debug_modes),
-			"debug_contexts": pickle_X_dumps(inst.debug_contexts),
-			"active_debug_mode": pickle_X_dumps(inst.active_debug_mode)
-		}
+		attrs = {}
+		attrs["configuration_vars"] = pickle_X_dumps(inst._configuration_vars)
+		attrs["active_debug_mode"] = pickle_X_dumps(inst.active_debug_mode.name)
+		attrs["debug_contexts"] = Logger._pickle_dump_debug_contexts(inst)
+		attrs["debug_modes"] = pickle_X_dumps(inst.debug_modes)
+		return attrs
 
 
 
@@ -172,39 +189,53 @@ class Logger:
 		for d in data:
 			x[d] = pickle_X_loads(data[d])
 		data = x
+		pickled_contexts = data["debug_contexts"]
+		data["debug_contexts"] = {}
+		from .formatters.I_Final_Formatter import I_Final_Formatter
+		from .formatters.Logging_Segment_Generator import Logging_Segment
+		globals()["I_Final_Formatter"] = I_Final_Formatter
+		globals()["Logging_Segment"] = Logging_Segment
+		for ctx_v in pickled_contexts.values():
+			new_ctx = Debug_Context(ctx_v["name"])
+			new_ctx.segment_generators = ctx_v["segment_generators"]
+			new_ctx.is_active = ctx_v["is_active"]
+			new_ctx.directions = ctx_v["directions"]
+			exec(ctx_v["final_formatter::source_code"], globals(), locals())
+			new_ctx.final_formatter = locals()["my_final_formatter"]
+			data["debug_contexts"][ctx_v["name"]] = new_ctx
 		inst = Logger()
-		inst.configuration_vars = data["configuration_vars"]
-		inst.active_debug_mode = data["active_debug_mode"]
+		inst._configuration_vars = data["configuration_vars"]
 		inst.debug_modes = data["debug_modes"]
+		inst.active_debug_mode = inst.debug_modes[data["active_debug_mode"]]
 		inst.debug_contexts = data["debug_contexts"]
 		for name in inst.debug_contexts:
-			inst.LOGGER_HELPER.set(name, DynamicVariableContainer(name))
+			inst._LOGGER_HELPER.set(name, DynamicVariableContainer(name))
 		for name in inst.debug_modes:
-			inst.__update_state_after_adding_debug_mode(name, inst.debug_modes[name].level)
+			inst.__update_state_after_adding_debug_mode(name)
 		return inst
 
 
 
 	def __init__(self) -> None:
-		self.configuration_vars = {}
+		self._configuration_vars = {}
 		self.debug_modes:"dict[str,Debug_Mode]" = {}
 		self.debug_contexts:"dict[str,Debug_Context]" = {}
 
-		self.LOGGER_HELPER = DynamicVariableContainer("LOGGER_HELPER")
+		self._LOGGER_HELPER = DynamicVariableContainer("LOGGER_HELPER")
 
 		self.__add_debug_mode("disabled", 0)
-		self.debug_modes["disabled"].set_override_is_active(False)
+		self.debug_modes["disabled"].override_is_active(False)
 
 		self.active_debug_mode:"Debug_Mode" = self.debug_modes["disabled"]
 
 
 	
 	def __call__(self, *args: Any, **kwds: Any) -> Any:
-		return self.LOGGER_HELPER
+		return self._LOGGER_HELPER
 
 
 
-	def set_debug_mode(self, name:"str") -> None:
+	def set_active_debug_mode(self, name:"str") -> None:
 		self.active_debug_mode = self.debug_modes[name]
 
 
@@ -223,41 +254,43 @@ class Logger:
 		# Construct the debug mode.
 		self.debug_modes[name] = Debug_Mode(name, level, None)
 
-		self.__update_state_after_adding_debug_mode(
-			name,
-			level
-		)
+		self.__update_state_after_adding_debug_mode(name)
 
 	
 
-	def __update_state_after_adding_debug_mode(self, name_of_debug_mode, level):
+	def __update_state_after_adding_debug_mode(self, name_of_debug_mode):
 		# The below wrapper is what actually gets called when you do `plsp().<insert name of debug mode>(...)`
 		# NOTE: Remember, this is only for the global context.
+		# NOTE: E.g., if we do `plsp().our_debug_mode(...)`, this would invoke the global context since we did not do
+		# NOTE:   `plsp().our_context.our_debug_mode(...)`.
 		def wrapper_for_global_handler(*args, **kwargs):
-			context = self.debug_contexts[self.configuration_vars["global_context"]]
+			context = self.debug_contexts[self._configuration_vars["global_context"]]
 			mode = self.debug_modes[name_of_debug_mode]
 			context._handle(mode, self.active_debug_mode, *args, **kwargs)
 
 		# And here is the wrapper for when we specify a context.
 		# E.g., `plsp().our_context.our_debug_mode(...)`...
 		# This wrapper is the `our_debug_mode` part.
-		# The actual `our_context` is made in the `add_debug_context` method and it is a `DynamicVariableContainer`
-		#  instance that is a child of the `LOGGER_HELPER` instance.
+		# NOTE: The actual `our_context` is created in the `add_debug_context` method. It is a
+		# NOTE:   `DynamicVariableContainer` instance that serves as a child of the `LOGGER_HELPER` instance,
+		# NOTE:   which itself, is an instance of `DynamicVariableContainer`.
 		def wrapper_for_context_specified_handler(context, *args, **kwargs):
 			mode = self.debug_modes[name_of_debug_mode]
 			context._handle(mode, self.active_debug_mode, *args, **kwargs)
 
 		# We only want to use the `wrapper_for_global_handler` if the global context is set.
-		if self.configuration_vars.get("global_context") is not None:
-			self.LOGGER_HELPER.set(name_of_debug_mode, wrapper_for_global_handler)
+		if self._configuration_vars.get("global_context") is not None:
+			self._LOGGER_HELPER.set(name_of_debug_mode, wrapper_for_global_handler)
 
 		# Now to update the context-specific wrappers.
-		keys_no_globals = [k for k in self.LOGGER_HELPER.get_children().keys() if k not in self.debug_modes.keys()]
+		keys_no_globals = [k for k in self._LOGGER_HELPER.get_children().keys() if k not in self.debug_modes.keys()]
 		keys_no_globals = [k for k in keys_no_globals if k not in ["set", "del", "get_children", "get_name"]]
 		for child_key in keys_no_globals:
-			container = self.LOGGER_HELPER.get_children()[child_key]
+			container = self._LOGGER_HELPER.get_children()[child_key]
 			def _wrapper_for_the_wrapper(*args, **kwargs):
 				nonlocal container
+				# Get the key of `DYNAMIC_PIE` that corresponds to the context.
+				# Remember that the context is itself, a `DynamicVariableContainer` instance.
 				context = self.debug_contexts[container.get_name()]
 				wrapper_for_context_specified_handler(context, *args, **kwargs)
 			container.set(name_of_debug_mode, _wrapper_for_the_wrapper)
@@ -293,7 +326,7 @@ class Logger:
 		if name in self.debug_contexts:
 			raise Exception(f"Debug context {name} already exists.")
 		self.debug_contexts[name] = Debug_Context(name)
-		self.LOGGER_HELPER.set(name, DynamicVariableContainer(name))
+		self._LOGGER_HELPER.set(name, DynamicVariableContainer(name))
 
 
 
@@ -303,7 +336,12 @@ class Logger:
 		if name not in accepted_vars:
 			raise Exception(f"Variable {name} not accepted.")
 
-		self.configuration_vars[name] = value
+		constant_vars = ["global_context"]
+		if name in constant_vars:
+			if name in self._configuration_vars:
+				raise Exception(f"Variable {name} already set.")
+
+		self._configuration_vars[name] = value
 
 		
 
