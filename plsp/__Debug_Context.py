@@ -1,10 +1,22 @@
+from typing import Protocol, TextIO
 from .formatters.Logging_Segment_Generator import I_Logging_Segment_Generator
 from .formatters.I_Final_Formatter import I_Final_Formatter
 from .__Debug_Mode import Debug_Mode
 from .__IO_Direction import IO_Direction
 
-from io import IOBase, TextIOWrapper
+from io import IOBase
 import sys
+
+
+
+
+
+
+
+# [Credit](https://github.com/Delgan/loguru/blob/master/loguru/__init__.pyi)
+class Writable (Protocol):
+	def write(self, s:str) -> None:
+		...
 
 
 
@@ -18,7 +30,7 @@ class Debug_Context:
 
 	__slots__ = (
 		"name",
-		"segment_generators",
+		"LSGs",
 		"final_formatter",
 		"is_active",
 		"directions",
@@ -31,7 +43,7 @@ class Debug_Context:
 	def __init__(self, name:str) -> None:
 		self.name = name
 
-		self.segment_generators:"list[I_Logging_Segment_Generator]" = []
+		self.LSGs:"list[I_Logging_Segment_Generator]" = []
 		self.final_formatter:"I_Final_Formatter|None" = None
 
 		self.is_active:"bool|None" = None
@@ -44,12 +56,17 @@ class Debug_Context:
 
 
 
-	def set_is_active(self, new_is_active:bool) -> None:
-		self.is_active = new_is_active
+	def set_enabled(self) -> None:
+		self.is_active = True
+
+
+	
+	def set_disabled(self) -> None:
+		self.is_active = False
 
 
 
-	def add_direction(self, do_encode:"bool", file_handle:"int|None"=None, file_path:"str|None"=None) -> None:
+	def _add_direction(self, do_encode:"bool", file_handle:"int|None"=None, file_path:"str|None"=None) -> None:
 		if self.directions is None:
 			self.directions = []
 		self.directions.append(
@@ -62,8 +79,21 @@ class Debug_Context:
 
 
 
-	def add_logging_segment(self, formatter):
-		self.segment_generators.append(formatter)
+	def add_sink(self,
+			sink:"TextIO|str",
+			do_encode:"bool"=False,
+			do_flush:"bool"=False,
+			do_serialize:"bool"=False
+	) -> None:
+		if isinstance(sink, TextIO):
+			self._add_direction(do_encode, sink.fileno(), None)
+		else:
+			self._add_direction(do_encode, None, sink)
+
+
+
+	def add_LSG(self, new_LSG):
+		self.LSGs.append(new_LSG)
 
 
 
@@ -136,7 +166,7 @@ class Debug_Context:
 			s += "\n"
 		
 		formatted_s = ""
-		for formatter in self.segment_generators:
+		for formatter in self.LSGs:
 			formatted_s += I_Logging_Segment_Generator._handle(formatter)
 		
 		s = I_Final_Formatter._handle(self.final_formatter, formatted_s, s)

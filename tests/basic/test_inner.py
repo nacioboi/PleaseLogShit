@@ -30,7 +30,7 @@ class physics:
 
 my_renderer = renderer()
 
-plsp.set_active_debug_mode("detail")
+plsp.show("detail")
 
 my_physics = physics()
 

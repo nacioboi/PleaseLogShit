@@ -3,7 +3,8 @@ from .__Debug_Context import Debug_Context, Debug_Mode
 import inspect
 from pickle import dumps as pickle_X_dumps
 from pickle import loads as pickle_X_loads
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal, Generic, Type, TypeVar
+from enum import Enum
 
 Logger_X_set__ACCEPTED_LITS_T = Literal["global_context"]
 
@@ -13,62 +14,29 @@ Logger_X_set__ACCEPTED_LITS_T = Literal["global_context"]
 
 
 
-DYNAMIC_PIE = {}
-class DynamicVariableContainer:
+SINGLE_DYNAMIC_PIE = {}
+DVC_DM_T = TypeVar("DVC_DM_T", bound=Enum)
+DVC_DC_T = TypeVar("DVC_DC_T", bound=Enum)
+class DynamicVariableContainer (Generic[DVC_DM_T, DVC_DC_T]):
 
 
 
-	"""
-	Represents a container for dynamically managing variables.
+	def __init__(self, modes_t: "Type[DVC_DM_T]", contexts_t: "Type[DVC_DC_T]"):
+		global SINGLE_DYNAMIC_PIE
 
-	This class allows you to dynamically set and retrieve variables without explicitly defining them in the class definition.
+		self.name = "LOGGER_HELPER"
 
-	Usage:
-	```python
-	# Create a DynamicVariableContainer instance
-	container = DynamicVariableContainer("container1")
+		for item in modes_t:
+			setattr(self, item.name.lower(), property(lambda self, item=item: item))
 
-	# Dynamically set a variable in the container
-	container.set("variable1", 10)
-
-	# Dynamically get the value of a variable from the container
-	value = container.variable1
-	print(value)  # Output: 10
-
-	# Dynamically get all the variables in the container
-	variables = container.get_children()
-
-	# Dynamically delete a variable from the container
-	container.del("variable1")
-	```
-
-	Attributes:
-		name (str): The name of the container.
-
-	Notes on the hackiness of this class:
-	- This class uses a global dictionary to store the variables.
-	- This class uses a static method to set and delete the variables, among other things.
-
-	Because of this, please DO NOT EVER call the static methods directly.
-	Instead, use the `set`, `del`, and `get_children` methods of the instance of this class.
-	Beware that you will not get good intellisense support but it WILL work, trust me bro. ^_^
-	"""
-
-
-
-	def __init__(self, name):
-		global DYNAMIC_PIE
-
-		self.name = name
-
-		DYNAMIC_PIE[name] = {}
-		DynamicVariableContainer._post_setup(name)
+		SINGLE_DYNAMIC_PIE[self.name] = {}
+		DynamicVariableContainer._post_setup(self.name)
 	
 
 
 	@staticmethod
 	def _post_setup(__name:str):
-		global DYNAMIC_PIE
+		global SINGLE_DYNAMIC_PIE
 
 		def __wrapper_for_set(*args, **kwargs):
 			DynamicVariableContainer._set(__name, *args, **kwargs)
@@ -82,19 +50,19 @@ class DynamicVariableContainer:
 		def __wrapper_for_get_name(*args, **kwargs):
 			return DynamicVariableContainer._get_name(__name, *args, **kwargs)
 
-		DYNAMIC_PIE[__name]["set"] = __wrapper_for_set
-		DYNAMIC_PIE[__name]["del"] = __wrapper_for_del
-		DYNAMIC_PIE[__name]["get_children"] = __wrapper_for_get_children
-		DYNAMIC_PIE[__name]["get_name"] = __wrapper_for_get_name
+		SINGLE_DYNAMIC_PIE[__name]["set"] = __wrapper_for_set
+		SINGLE_DYNAMIC_PIE[__name]["del"] = __wrapper_for_del
+		SINGLE_DYNAMIC_PIE[__name]["get_children"] = __wrapper_for_get_children
+		SINGLE_DYNAMIC_PIE[__name]["get_name"] = __wrapper_for_get_name
 	
 
 
 	@staticmethod
 	def _set(__name_of_self:str, name: str, value) -> None:
-		global DYNAMIC_PIE
+		global SINGLE_DYNAMIC_PIE
 
 		name_of_self = __name_of_self
-		piece_of_pie = DYNAMIC_PIE[name_of_self]
+		piece_of_pie = SINGLE_DYNAMIC_PIE[name_of_self]
 
 		piece_of_pie[name] = value
 
@@ -102,10 +70,10 @@ class DynamicVariableContainer:
 
 	@staticmethod
 	def _del(__name_of_self:str, name: str) -> None:
-		global DYNAMIC_PIE
+		global SINGLE_DYNAMIC_PIE
 
 		name_of_self = __name_of_self
-		piece_of_pie = DYNAMIC_PIE[name_of_self]
+		piece_of_pie = SINGLE_DYNAMIC_PIE[name_of_self]
 
 		del piece_of_pie[name]
 
@@ -113,10 +81,10 @@ class DynamicVariableContainer:
 
 	@staticmethod
 	def _get_children(__name_of_self:str) -> dict:
-		global DYNAMIC_PIE
+		global SINGLE_DYNAMIC_PIE
 
 		name_of_self = __name_of_self
-		piece_of_pie = DYNAMIC_PIE[name_of_self]
+		piece_of_pie = SINGLE_DYNAMIC_PIE[name_of_self]
 
 		return piece_of_pie
 	
@@ -129,10 +97,10 @@ class DynamicVariableContainer:
 
 
 	def __getattribute__(self, __name: str):
-		global DYNAMIC_PIE
+		global SINGLE_DYNAMIC_PIE
 
 		name_of_self = super().__getattribute__("name")
-		piece_of_pie = DYNAMIC_PIE[name_of_self]
+		piece_of_pie = SINGLE_DYNAMIC_PIE[name_of_self]
 
 		if __name in piece_of_pie:
 			return piece_of_pie[__name]
@@ -145,106 +113,48 @@ class DynamicVariableContainer:
 
 
 
-
-class Logger:
-
-
-
-	"""
-	The actual meat and potatoes of the logging system.
-	"""
-
-
-	@staticmethod
-	def __pickle_dump_debug_contexts(inst:"Logger") -> "bytes":
-		ret_dict = {}
-		for key in inst.contexts:
-			if not ret_dict.get(key):
-				ret_dict[key] = {}
-			ret_dict[key]["name"] = inst.contexts[key].name
-			ret_dict[key]["LSGs"] = inst.contexts[key].LSGs
-			# TODO: The below may cause some problems. For e.g., referencing any non builtin classes will fail.
-			# NOTE: The e.g. will fail because we are only capturing the source code of the class and 
-			# NOTE:   this does not include the imports.
-			source_code = inspect.getsource(inst.contexts[key].final_formatter.__class__)
-			ret_dict[key]["final_formatter::source_code"] = source_code
-			ret_dict[key]["is_active"] = inst.contexts[key].is_active
-			ret_dict[key]["directions"] = inst.contexts[key].directions
-
-		return pickle_X_dumps(ret_dict)
+DM_T = TypeVar("DM_T", bound=Enum)
+DC_T = TypeVar("DC_T", bound=Enum)
+class Experimental_Logger (Generic[DM_T, DC_T]):
 
 
 
-	@staticmethod
-	def _pickle_dump(inst:"Logger") -> "dict":	
-		attrs = {}
-		attrs["configuration_vars"] = pickle_X_dumps(inst._configuration_vars)
-		attrs["active_debug_mode"] = pickle_X_dumps(inst.active_debug_mode.name)
-		attrs["debug_contexts"] = Logger.__pickle_dump_debug_contexts(inst)
-		attrs["debug_modes"] = pickle_X_dumps(inst.debug_modes)
-		return attrs
-
-
-
-	@staticmethod
-	def _pickle_load(data:"dict") -> "Logger":
-		x = {}
-		for d in data:
-			x[d] = pickle_X_loads(data[d])
-		data = x
-		pickled_contexts = data["debug_contexts"]
-		data["debug_contexts"] = {}
-		from .formatters.I_Final_Formatter import I_Final_Formatter
-		from .formatters.Logging_Segment_Generator import Logging_Segment
-		globals()["I_Final_Formatter"] = I_Final_Formatter
-		globals()["Logging_Segment"] = Logging_Segment
-		for ctx_v in pickled_contexts.values():
-			new_ctx = Debug_Context(ctx_v["name"])
-			new_ctx.LSGs = ctx_v["LSGs"]
-			new_ctx.is_active = ctx_v["is_active"]
-			new_ctx.directions = ctx_v["directions"]
-			exec(ctx_v["final_formatter::source_code"], globals(), locals())
-			# TODO: This is hardcoded class name `my_final_formatter`.
-			new_ctx.final_formatter = locals()["my_final_formatter"]
-			data["debug_contexts"][ctx_v["name"]] = new_ctx
-		inst = Logger()
-		inst._configuration_vars = data["configuration_vars"]
-		inst.debug_modes = data["debug_modes"]
-		inst.active_debug_mode = inst.debug_modes[data["active_debug_mode"]]
-		inst.contexts = data["debug_contexts"]
-		for name in inst.contexts:
-			inst._LOGGER_HELPER.set(name, DynamicVariableContainer(name))
-		for name in inst.debug_modes:
-			inst.__update_state_after_adding_debug_mode(name)
-		return inst
-
-
-
-	def __init__(self) -> None:
+	def __init__(self, modes_t:"Type[DM_T]", contexts_t:"Type[DC_T]") -> None:
 		self._configuration_vars = {}
 		self.debug_modes:"dict[str,Debug_Mode]" = {}
 		self.contexts:"dict[str,Debug_Context]" = {}
 
-		self._LOGGER_HELPER = DynamicVariableContainer("LOGGER_HELPER")
+		self._LOGGER_HELPER = DynamicVariableContainer(modes_t,contexts_t)
 
-		self.__add_debug_mode("disabled", 0)
+		self.__inner__add_debug_mode("disabled", 0)
 		self.debug_modes["disabled"].override_is_active(False)
+
+		modes_names = [item.name for item in modes_t]
+		contexts_names = [item.name for item in contexts_t]
+
+		for name in modes_names:
+			is_separate = True if name.startswith("SEPARATED_") else False
+			name = name.lstrip("SEPARATED_")
+			self.__add_debug_mode(name, is_separate)
+		
+		for name in contexts_names:
+			self.__add_debug_context(name)
 
 		self.active_debug_mode:"Debug_Mode" = self.debug_modes["disabled"]
 
 
 	
-	def __call__(self, *args: Any, **kwds: Any) -> Any:
+	def __call__(self, *args: Any, **kwds: Any) -> DynamicVariableContainer[DM_T,DC_T]:
 		return self._LOGGER_HELPER
 
 
 
-	def show(self, name:"str") -> None:
-		self.active_debug_mode = self.debug_modes[name]
+	def show(self, mode:"DM_T") -> None:
+		self.active_debug_mode = self.debug_modes[mode.name]
 
 
 
-	def __add_debug_mode(self, name:"str", level:"int"):
+	def __inner__add_debug_mode(self, name:"str", level:"int"):
 		"""
 		YOU MUST NEVER CALL THIS DIRECTLY.
 
@@ -301,7 +211,7 @@ class Logger:
 
 
 
-	def add_debug_mode(self, name:"str", separate=False):
+	def __add_debug_mode(self, name:"str", separate=False):
 		"""
 		Adds a debug mode to the system.
 
@@ -322,11 +232,11 @@ class Logger:
 		else:
 			level = len(self.debug_modes)+1
 
-		self.__add_debug_mode(name, level)
+		self.__inner__add_debug_mode(name, level)
 
 
 
-	def add_debug_context(self, name:"str"):
+	def __add_debug_context(self, name:"str"):
 		if name in self.contexts:
 			raise Exception(f"Debug context {name} already exists.")
 		self.contexts[name] = Debug_Context(name)
