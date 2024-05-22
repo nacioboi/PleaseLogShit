@@ -105,15 +105,16 @@ class Time_Segment_Generator (__I_Logging_Segment_Generator):
 		self._second_microsecond_separator = _Logging_Segment_Piece()
 
 		self.time_format_string = "%d/%m/%y@%H:%M:%S" if not format_string else format_string
-		if further_parse_data is None:
-			self.time_format_string = self.__default_further_parse_data(self.time_format_string)
-		else:
-			self.time_format_string = further_parse_data(self.time_format_string)
+		self._further_parse_data_callback = further_parse_data
 
 
 
 	def impl_handle(self) -> None:
 		s = _datetime_X_datetime.now().strftime(self.time_format_string)
+		if self._further_parse_data_callback is None:
+			s = self.__default_further_parse_data(s)
+		else:
+			s = self._further_parse_data_callback(s)
 		from time import perf_counter_ns
 		nanoseconds = perf_counter_ns() % 1_000_000_000
 		s = s + "." + str(nanoseconds)[:-2]  # Last two digits are always `00`.
