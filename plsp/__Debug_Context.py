@@ -4,7 +4,7 @@ from .formatters.I_Final_Formatter import I_Final_Formatter
 from .__Debug_Mode import Debug_Mode
 from .__IO_Direction import IO_Direction
 
-from io import IOBase
+from io import IOBase, TextIOWrapper
 import sys
 
 
@@ -46,7 +46,7 @@ class Debug_Context:
 		self.LSGs:"list[I_Logging_Segment_Generator]" = []
 		self.final_formatter:"I_Final_Formatter|None" = None
 
-		self.is_active:"bool|None" = None
+		self.is_active:"bool" = True
 		self.directions:"list[IO_Direction]|None" = None
 
 
@@ -66,14 +66,20 @@ class Debug_Context:
 
 
 
-	def _add_direction(self, do_encode:"bool", file_handle:"int|None"=None, file_path:"str|None"=None) -> None:
+	def _add_direction(self,
+			do_encode:"bool",
+			file_handle:"int|None"=None, file_path:"str|None"=None,
+			do_flush:"bool"=False, do_serialize:"bool"=False
+	) -> None:
 		if self.directions is None:
 			self.directions = []
 		self.directions.append(
 			IO_Direction(
 				do_encode=do_encode,
 				file_handle=file_handle,
-				file_path=file_path
+				file_path=file_path,
+				do_flush=do_flush,
+				do_serialize=do_serialize
 			)
 		)
 
@@ -85,10 +91,20 @@ class Debug_Context:
 			do_flush:"bool"=False,
 			do_serialize:"bool"=False
 	) -> None:
-		if isinstance(sink, TextIO):
-			self._add_direction(do_encode, sink.fileno(), None)
+		if isinstance(sink, TextIOWrapper):
+			self._add_direction(
+				do_encode,
+				sink.fileno(), None,
+				do_flush, do_serialize
+			)
+		elif isinstance(sink, str):
+			self._add_direction(
+				do_encode,
+				None, sink,
+				do_flush, do_serialize
+			)
 		else:
-			self._add_direction(do_encode, None, sink)
+			raise Exception("Unknown sink type.")
 
 
 
@@ -148,7 +164,7 @@ class Debug_Context:
 
 
 	def _handle(self, debug_mode:"Debug_Mode", active_debug_level:"Debug_Mode", *args, **kwargs):
-		s = self._inner_handle(debug_mode, active_debug_level, args, kwargs)
+		s = self._inner_handle(debug_mode, active_debug_level, *args, **kwargs)
 		if s != "":
 			self._add_contents_to_log(s)
 
@@ -158,7 +174,7 @@ class Debug_Context:
 
 		s = ""
 		for arg in args:
-			s += f"{str(arg)} "
+			s += f"{arg} "
 
 		ACCEPTED_KWARGS = ["end"]
 		for kwarg in kwargs:

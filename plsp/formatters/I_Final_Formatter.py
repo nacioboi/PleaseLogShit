@@ -29,7 +29,7 @@ class I_Final_Formatter(__abc_X_ABC):
 		while head < len(segments_string):
 			head, result = _new_segment_from_str_and_head(segments_string, head)
 			results.append(result)
-		reordered = inst.impl_handle(inst, results, non_segments_string)
+		reordered = inst.impl_handle(results, non_segments_string)
 		ret_str = ""
 		for r in reordered:
 			ret_str += r.s
