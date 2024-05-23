@@ -148,6 +148,11 @@ class Debug_Context:
 
 
 	def _handle(self, debug_mode:"Debug_Mode", active_debug_level:"Debug_Mode", *args, **kwargs):
+		s = self._inner_handle(debug_mode, active_debug_level, args, kwargs)
+		if s != "":
+			self._add_contents_to_log(s)
+
+	def _inner_handle(self, debug_mode:"Debug_Mode", active_debug_level:"Debug_Mode", *args, **kwargs) -> str:
 		# QUICK NOTE: the `debug_mode` parameter should be used to change the output and the
 		# `active_debug_mode` parameter should be used to determine if we should write to the output.
 
@@ -180,15 +185,14 @@ class Debug_Context:
 		# All conditions where we cannot write.
 		if active_debug_level.level == -1 and debug_mode.level == -1:
 			if not active_debug_level.name == debug_mode.name:
-				return
+				return ""
 		elif active_debug_level.level < debug_mode.level:
-			return
+			return ""
 		elif self.is_active is None or (self.is_active is not None and not self.is_active):
-			return
+			return ""
 
 		if active_debug_level.level >= debug_mode.level:
-			self._add_contents_to_log(s)
-			return
+			return s
 
 		raise Exception("This should never happen.")
 

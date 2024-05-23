@@ -3,7 +3,8 @@ from .__Debug_Context import Debug_Context, Debug_Mode
 import inspect
 from pickle import dumps as pickle_X_dumps
 from pickle import loads as pickle_X_loads
-from typing import Any, Literal, TypeAlias
+from typing import Any, Callable, Literal, TypeAlias
+from threading import Thread
 
 Logger_X_set__ACCEPTED_LITS_T = Literal["global_context"]
 
@@ -215,19 +216,22 @@ class Logger:
 		for name in inst.contexts:
 			inst._LOGGER_HELPER.set(name, DynamicVariableContainer(name))
 		for name in inst.debug_modes:
-			inst.__update_state_after_adding_debug_mode(name)
+			# TODO: CALLBACKS ARE NOT SUPPORTED WHEN PICKLING LOGGER.
+			inst.__update_state_after_adding_debug_mode(name, None)
 		return inst
 
 
 
 	def __init__(self) -> None:
 		self._configuration_vars = {}
+		self._callbacks:"dict[str,tuple[Callable,bool]]" = {}
+
 		self.debug_modes:"dict[str,Debug_Mode]" = {}
 		self.contexts:"dict[str,Debug_Context]" = {}
 
 		self._LOGGER_HELPER = DynamicVariableContainer("LOGGER_HELPER")
 
-		self.__add_debug_mode("disabled", 0)
+		self.__add_debug_mode("disabled", 0, None)
 		self.debug_modes["disabled"].override_is_active(False)
 
 		self.active_debug_mode:"Debug_Mode" = self.debug_modes["disabled"]
@@ -244,13 +248,7 @@ class Logger:
 
 
 
-	def __add_debug_mode(self, name:"str", level:"int"):
-		"""
-		YOU MUST NEVER CALL THIS DIRECTLY.
-
-		This is an inner function used by the `add_debug_mode` method (note without the underscore).
-		"""
-
+	def __add_debug_mode(self, name:"str", level:"int", callback:"str|None"):
 		# Check that the name isn't already in use.
 		if name in self.debug_modes:
 			raise Exception(f"Debug mode {name} already exists.")
@@ -258,11 +256,11 @@ class Logger:
 		# Construct the debug mode.
 		self.debug_modes[name] = Debug_Mode(name, level, None)
 
-		self.__update_state_after_adding_debug_mode(name)
+		self.__update_state_after_adding_debug_mode(name, callback)
 
 	
 
-	def __update_state_after_adding_debug_mode(self, name_of_debug_mode):
+	def __update_state_after_adding_debug_mode(self, name_of_debug_mode, callback:"str|None"):
 		# The below wrapper is what actually gets called when you do `plsp().<insert name of debug mode>(...)`
 		# NOTE: Remember, this is only for the global context.
 		# NOTE: E.g., if we do `plsp().our_debug_mode(...)`, this would invoke the global context since we did not do
@@ -270,6 +268,18 @@ class Logger:
 		def wrapper_for_global_handler(*args, **kwargs):
 			context = self.contexts[self._configuration_vars["global_context"]]
 			mode = self.debug_modes[name_of_debug_mode]
+			if callback is not None:
+				def _cb_():
+					self._callbacks[callback][0]({ #type:ignore
+						"colored_text": context._inner_handle(
+							mode, self.active_debug_mode, *args, **kwargs
+						)
+					})
+				do_start_sep_thread = self._callbacks[callback][1] 
+				if do_start_sep_thread:
+					Thread(target=_cb_, daemon=True).start()
+				else:
+					_cb_()
 			context._handle(mode, self.active_debug_mode, *args, **kwargs)
 
 		# And here is the wrapper for when we specify a context.
@@ -301,28 +311,13 @@ class Logger:
 
 
 
-	def add_debug_mode(self, name:"str", separate=False):
-		"""
-		Adds a debug mode to the system.
-
-		Args:
-		    name (str): The name of the debug mode.
-		
-		Optional Keyword Args:
-		- write_to_file (str|None): 	The file to write to (if any).
-		- write_to_io (int|None): 	The io object to write to (if any).
-		- separate (bool): 		If this is a standalone debug mode, meaning, if this mode is active,
-					  	  all other debug mode will not be active.
-
-		NOTE: You must specify at least one of `write_to_file` or `write_to_io`.
-		"""
-
+	def add_debug_mode(self, name:"str", separate=False, callback:"str|None"=None):
 		if separate:
 			level = -1
 		else:
 			level = len(self.debug_modes)+1
 
-		self.__add_debug_mode(name, level)
+		self.__add_debug_mode(name, level, callback)
 
 
 
@@ -349,7 +344,10 @@ class Logger:
 
 		
 
-
+	def define_callback(self, id:"str", multi_threaded:bool):
+		def wrapper(func):
+			self._callbacks[id] = (func, multi_threaded)
+		return wrapper
 
 
 

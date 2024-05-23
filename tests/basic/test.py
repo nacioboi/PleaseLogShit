@@ -17,20 +17,7 @@ from plsp.formatters.Logging_Segment_Generator import Logging_Segment
 
 
 
-# TODO: Experiment with `Enum` instead of `str` for the debug modes and contexts.
-from plsp.Experimental_Logger import Experimental_Logger
-from enum import Enum
-class Debug_Mode (Enum):
-	INFO = ()
-	DETAIL = ()
-	DEBUG = ()
-	ERROR = ()
-class Debug_Context (Enum):
-	GENERIC = ()
-	RENDERING = ()
-	PHYSICS = ()
-logger = Experimental_Logger(modes_t=Debug_Mode, contexts_t=Debug_Context)
-#logger.show(Debug_Mode.DETAIL)
+# TODO: Experiment with `Enum` instead of `str` for the debug modes and contexts. SEE `x.py`.
 # NOTE: ONLY ONE LOGGER SHOULD EVER BE CREATED PER PROGRAM.
 logger = Logger()
 

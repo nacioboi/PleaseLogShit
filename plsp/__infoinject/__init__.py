@@ -127,41 +127,6 @@ class __Info_Injector:
 
 
 	class Var_Ref:
-		"""
-		When calling `InfoInjector.add_instruction`, you may use this class to reference variables.
-
-		For example:
-		```python
-		@InfoInjector.add_instruction(line=1, debug_mode="info", debug_context="generic", args_to_logger=(
-			f"n = {InfoInjector.VariableReference("n")}"
-		))
-		@InfoInjector.inject(globals(), locals())
-		def fib(n):
-			if n <= 1:
-				return n
-			else:
-				return fib(n-1) + fib(n-2)
-		```
-		
-		> When the code is put together to create our new function:
-
-		```python
-		def fib(n):
-			Logger().generic.info(f"n = {n}")
-			if n <= 1:
-				return n
-			else:
-				return fib(n-1) + fib(n-2)
-		```
-
-		> Notice the new line that was added.
-
-		Basically, the `VariableReference` class is used as a placeholder for the variable `n`.
-		It does not actually fetch anything at any time.
-
-		This is because python does the fetching when the newly compiled function is called.
-		"""
-
 		SALT = "|`VARIABLE_REFERENCE`|"
 
 		def __init__(self, name:"str"):

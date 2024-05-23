@@ -155,12 +155,6 @@ class Experimental_Logger (Generic[DM_T, DC_T]):
 
 
 	def __inner__add_debug_mode(self, name:"str", level:"int"):
-		"""
-		YOU MUST NEVER CALL THIS DIRECTLY.
-
-		This is an inner function used by the `add_debug_mode` method (note without the underscore).
-		"""
-
 		# Check that the name isn't already in use.
 		if name in self.debug_modes:
 			raise Exception(f"Debug mode {name} already exists.")
@@ -212,21 +206,6 @@ class Experimental_Logger (Generic[DM_T, DC_T]):
 
 
 	def __add_debug_mode(self, name:"str", separate=False):
-		"""
-		Adds a debug mode to the system.
-
-		Args:
-		    name (str): The name of the debug mode.
-		
-		Optional Keyword Args:
-		- write_to_file (str|None): 	The file to write to (if any).
-		- write_to_io (int|None): 	The io object to write to (if any).
-		- separate (bool): 		If this is a standalone debug mode, meaning, if this mode is active,
-					  	  all other debug mode will not be active.
-
-		NOTE: You must specify at least one of `write_to_file` or `write_to_io`.
-		"""
-
 		if separate:
 			level = -1
 		else:
