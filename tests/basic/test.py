@@ -122,7 +122,7 @@ logger.contexts["physics"].add_LSG(my_time_sg)
 class my_final_formatter (I_Final_Formatter):
 	def impl_handle(self, results: list[Logging_Segment], non_segments_string:"str") -> list[Logging_Segment]:
 		return results+[
-			Logging_Segment("NON_SEGMENT_1", f"\033[107m \033[0m "),
+			Logging_Segment("NON_SEGMENT_1", f" \033[107m \033[0m "),
 			Logging_Segment("NON_SEGMENT_2", non_segments_string)
 		]
 

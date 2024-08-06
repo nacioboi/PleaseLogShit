@@ -16,7 +16,6 @@ from .__Debug_Context import Debug_Context
 from .__Debug_Mode import Debug_Mode
 from .__IO_Direction import IO_Direction
 
-from .__infoinject import infoinject
 from . import formatters
 
 
